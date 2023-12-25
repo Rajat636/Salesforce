@@ -1,43 +1,44 @@
--------------------------------------------------DailyLeadProcessor-----------------------------------------------------
-
 public class DailyLeadProcessor implements Schedulable {
     public void execute(SchedulableContext ctx) {
-        List<Lead> leadstoupdate = new List<Lead>();
-        List<Lead> leads = [ SELECT Id FROM Lead WHERE LeadSource = NULL LIMIT 200];
+        List<lead> l_list_new = new List<lead>();
+        List<Lead> l_list = new List<lead>([ SELECT Id, LeadSource FROM Lead WHERE LeadSource = NULL LIMIT 200]);
         
-        for(Lead l : leads){
+        for(lead l : l_list){
             l.LeadSource = 'Dreamforce';
-            leadstoupdate.add(l);    
+            l_list_new.add(l);    
         }
-        update leadstoupdate;
+        update l_list_new;
         
     }
 }
 
-//////////////////////
+/////////////////////////////
+/////////////////////////////
+
 @isTest
 public class DailyLeadProcessorTest {
-//Seconds Minutes Hours Day_of_month Month Day_of_week optional_year
-    public static String CRON_EXP = '0 0 0 2 6 ? 2023';
+	@testSetup
    
-    static testmethod void testScheduledJob(){
-        List<Lead> leads = new List<Lead>();
+    static void setup(){
+        list<Lead> listOfLead = new list<Lead>();
        
         for(Integer i = 0; i < 200; i++){
-            Lead l = new Lead(FirstName = 'First ' + i, LastName = 'LastName', Company = 'The Inc');
-            leads.add(l);
+            Lead ld = new Lead(Company ='The Inc'+i, LastName ='LN' +i, Status='Working Contacted');
+            listOfLead.add(ld);
         }
        
-        insert leads;
-       
+        insert listOfLead;  
+    }
+    
+    static testmethod void testDailyLeadProcessorScheduledJob(){
+        String sch = '0 5 12 * * ?';
         Test.startTest();
         // Schedule the test job
-        String jobId = System.schedule('ScheduledApexTest', CRON_EXP, new DailyLeadProcessor());
-        Test.stopTest();
+        String jobId = System.schedule('ScheduledApexTest', sch, new DailyLeadProcessor());
+        List<Lead> lstOfLead = [SELECT Id FROM Lead WHERE LeadSource=null LIMIT 200];
+        System.assertEquals(200, lstOfLead.size());
         
-        List<Lead> checkleads = New List<Lead>();
-        checkleads = [SELECT Id FROM Lead WHERE LeadSource='Dreamforce'and Company='The Inc'];
-        System.assertEquals(200,checkleads.size(),'Lead were not created');
+        Test.stopTest();
     }
 
 }
